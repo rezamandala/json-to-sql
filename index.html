@@ -2,66 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>JSON to SQL Converter</title>
+  <title>JSON to SQL Converter (UI Enhanced)</title>
   <style>
-    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
-    h1 { color: #333; }
-    #output { white-space: pre; background: #fff; padding: 1em; border: 1px solid #ccc; margin-top: 1em; }
-    button { margin-top: 1em; padding: 0.5em 1em; }
+    body { font-family: Arial, sans-serif; padding: 2em; background: #f0f2f5; color: #333; }
+    h1 { color: #222; }
+    .container { background: white; padding: 2em; border-radius: 8px; max-width: 700px; margin: auto; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 1em; font-weight: bold; }
+    input[type="text"] { width: 100%; padding: 0.5em; margin-top: 0.5em; }
+    textarea { width: 100%; height: 200px; margin-top: 1em; }
+    button, a.button {
+      margin-top: 1em; padding: 0.5em 1em;
+      background: #007bff; color: white;
+      border: none; border-radius: 4px;
+      cursor: pointer; text-decoration: none;
+    }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
+<div class="container">
   <h1>JSON to SQL Converter (PostgreSQL)</h1>
-  <input type="file" id="jsonFile" accept=".json"><br>
+
+  <label for="tableName">Table Name</label>
+  <input type="text" id="tableName" value="sales_details">
+
+  <label for="jsonFile">Upload JSON File</label>
+  <input type="file" id="jsonFile" accept=".json">
+
   <button onclick="convertJSON()">Convert to SQL</button>
-  <a id="downloadLink" style="display:none;" download="insert_sales_details.sql">Download SQL File</a>
-  <div id="output"></div>
+  <a id="downloadLink" class="button hidden" download="insert_data.sql">Download SQL File</a>
 
-  <script>
-    const columns = [
-      "id", "sales_id", "product_id", "qty", "harga", "jumlah", "diskon_id", "diskon_percent",
-      "diskon_amount", "promo_id", "promo_percent", "promo_amount", "sub_total", "total",
-      "iscustom", "syarat_promo_id", "refunded", "refund_date", "created_at", "updated_at",
-      "deleted_at", "isdeleted", "variant_size_id", "total_modifier", "grandtotal_with_modifier", "package_id"
-    ];
+  <label for="output">SQL Output Preview</label>
+  <textarea id="output" readonly></textarea>
+</div>
 
-    function formatValue(val, key) {
-      if (val === "" || val === null || val === undefined) return 'NULL';
-      if (key === 'refunded' || key === 'isdeleted') return val === 't' ? 'true' : 'false';
-      if (key === 'iscustom') return parseInt(val);
-      return `'${val.toString().replace(/'/g, "''")}'`;
-    }
+<script>
+function formatValue(val, key) {
+  if (val === "" || val === null || val === undefined) return 'NULL';
+  if (key === 'refunded' || key === 'isdeleted') return val === 't' ? 'true' : 'false';
+  if (key === 'iscustom') return parseInt(val);
+  return `'${val.toString().replace(/'/g, "''")}'`;
+}
 
-    function convertJSON() {
-      const fileInput = document.getElementById('jsonFile');
-      if (!fileInput.files.length) {
-        alert('Please upload a JSON file first.');
+function convertJSON() {
+  const fileInput = document.getElementById('jsonFile');
+  const tableName = document.getElementById('tableName').value.trim();
+  if (!fileInput.files.length || !tableName) {
+    alert('Please provide table name and upload a JSON file.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const json = JSON.parse(e.target.result);
+      if (!Array.isArray(json) || json.length === 0) {
+        alert('JSON must be an array of objects.');
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const json = JSON.parse(e.target.result);
-          const sql = json.map(row => {
-            const values = columns.map(col => formatValue(row[col], col));
-            return `INSERT INTO sales_details (${columns.join(', ')}) VALUES (${values.join(', ')});`;
-          }).join('\n');
+      const dynamicColumns = Object.keys(json[0]);
+      const sql = json.map(row => {
+        const values = dynamicColumns.map(col => formatValue(row[col], col));
+        return `INSERT INTO ${tableName} (${dynamicColumns.join(', ')}) VALUES (${values.join(', ')});`;
+      }).join('\n');
 
-          document.getElementById('output').textContent = sql;
+      document.getElementById('output').value = sql;
 
-          // Prepare download
-          const blob = new Blob([sql], { type: 'text/sql' });
-          const link = document.getElementById('downloadLink');
-          link.href = URL.createObjectURL(blob);
-          link.style.display = 'inline-block';
-        } catch (err) {
-          alert('Error parsing JSON: ' + err.message);
-        }
-      };
+      const blob = new Blob([sql], { type: 'text/sql' });
+      const link = document.getElementById('downloadLink');
+      link.href = URL.createObjectURL(blob);
+      link.classList.remove('hidden');
 
-      reader.readAsText(fileInput.files[0]);
+    } catch (err) {
+      alert('Error parsing JSON: ' + err.message);
     }
-  </script>
+  };
+
+  reader.readAsText(fileInput.files[0]);
+}
+</script>
 </body>
 </html>
