@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON to SQL Converter</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
+    h1 { color: #333; }
+    #output { white-space: pre; background: #fff; padding: 1em; border: 1px solid #ccc; margin-top: 1em; }
+    button { margin-top: 1em; padding: 0.5em 1em; }
+  </style>
+</head>
+<body>
+  <h1>JSON to SQL Converter (PostgreSQL)</h1>
+  <input type="file" id="jsonFile" accept=".json"><br>
+  <button onclick="convertJSON()">Convert to SQL</button>
+  <a id="downloadLink" style="display:none;" download="insert_sales_details.sql">Download SQL File</a>
+  <div id="output"></div>
+
+  <script>
+    const columns = [
+      "id", "sales_id", "product_id", "qty", "harga", "jumlah", "diskon_id", "diskon_percent",
+      "diskon_amount", "promo_id", "promo_percent", "promo_amount", "sub_total", "total",
+      "iscustom", "syarat_promo_id", "refunded", "refund_date", "created_at", "updated_at",
+      "deleted_at", "isdeleted", "variant_size_id", "total_modifier", "grandtotal_with_modifier", "package_id"
+    ];
+
+    function formatValue(val, key) {
+      if (val === "" || val === null || val === undefined) return 'NULL';
+      if (key === 'refunded' || key === 'isdeleted') return val === 't' ? 'true' : 'false';
+      if (key === 'iscustom') return parseInt(val);
+      return `'${val.toString().replace(/'/g, "''")}'`;
+    }
+
+    function convertJSON() {
+      const fileInput = document.getElementById('jsonFile');
+      if (!fileInput.files.length) {
+        alert('Please upload a JSON file first.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const json = JSON.parse(e.target.result);
+          const sql = json.map(row => {
+            const values = columns.map(col => formatValue(row[col], col));
+            return `INSERT INTO sales_details (${columns.join(', ')}) VALUES (${values.join(', ')});`;
+          }).join('\n');
+
+          document.getElementById('output').textContent = sql;
+
+          // Prepare download
+          const blob = new Blob([sql], { type: 'text/sql' });
+          const link = document.getElementById('downloadLink');
+          link.href = URL.createObjectURL(blob);
+          link.style.display = 'inline-block';
+        } catch (err) {
+          alert('Error parsing JSON: ' + err.message);
+        }
+      };
+
+      reader.readAsText(fileInput.files[0]);
+    }
+  </script>
+</body>
+</html>
