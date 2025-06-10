@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>JSON to SQL Converter (UI Enhanced)</title>
+  <title>JSON to SQL Converter</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 2em; background: #f0f2f5; color: #333; }
     h1 { color: #222; }
@@ -30,6 +30,7 @@
   <input type="file" id="jsonFile" accept=".json">
 
   <button onclick="convertJSON()">Convert to SQL</button>
+  <button onclick="copyToClipboard()">Copy to Clipboard</button>
   <a id="downloadLink" class="button hidden" download="insert_data.sql">Download SQL File</a>
 
   <label for="output">SQL Output Preview</label>
@@ -80,6 +81,14 @@ function convertJSON() {
   };
 
   reader.readAsText(fileInput.files[0]);
+}
+
+function copyToClipboard() {
+  const output = document.getElementById('output');
+  output.select();
+  output.setSelectionRange(0, 99999); // For mobile devices
+  document.execCommand('copy');
+  alert('SQL copied to clipboard!');
 }
 </script>
 </body>
